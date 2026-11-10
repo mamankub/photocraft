@@ -38,9 +38,10 @@ env:
 
 jobs:
   perf:
+    if: ${{ github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     name: perf (macOS, Apple GPU)
     # Pinned image, not -latest: the machine class must stay fixed for comparisons.
-    runs-on: macos-15
+    runs-on: ["self-hosted", "macOS", "ARM64", "asd-ci"]
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
