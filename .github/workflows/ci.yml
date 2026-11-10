@@ -514,7 +514,7 @@ jobs:
           path: selection-morphology-perf.txt
 
   selection-morphology-quick-perf:
-    if: ${{ (inputs.selection_morphology == true || inputs.color_range == true || inputs.selection_combining == true || inputs.brush_tip == true || inputs.dry_mixer == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    if: ${{ false && github.repository_owner == 'mamankub' }} # Owner paused non-Linux/Windows-x64 coverage (2026-11-10).
     name: quick performance suite
     # Match perf-nightly.yml: Linux llvmpipe lacks the float render targets needed by
     # bevel_bench, so its required GPU rows cannot be measured there.
