@@ -38,9 +38,10 @@ env:
 
 jobs:
   perf:
+    if: ${{ false && github.repository_owner == 'mamankub' }} # Owner paused non-Linux/Windows-x64 coverage (2026-11-10).
     name: perf (macOS, Apple GPU)
     # Pinned image, not -latest: the machine class must stay fixed for comparisons.
-    runs-on: macos-15
+    runs-on: ["self-hosted", "macOS", "ARM64", "asd-ci"]
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7

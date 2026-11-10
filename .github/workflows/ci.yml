@@ -74,10 +74,10 @@ jobs:
   # Format changes must exercise the Windows-only publication barriers (#8034). macOS is tested
   # only by release.yml.
   platforms:
-    if: github.event.action != 'labeled' || github.event.label.name == 'full-ci'
+    if: ${{ (github.event.action != 'labeled' || github.event.label.name == 'full-ci') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
     timeout-minutes: 10
     name: select platforms
-    runs-on: ubuntu-latest
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     outputs:
       windows: ${{ steps.pick.outputs.windows }}
       web: ${{ steps.pick.outputs.web }}
@@ -144,9 +144,8 @@ jobs:
 
   # The Linux gate. Its rust-cache entry is the one `test (without heif)` restores.
   gate:
-    if: github.event.action != 'labeled' || github.event.label.name == 'full-ci'
-    # Tracks @main so suite-wide CI fixes reach every app without a PR in each repository.
-    uses: storytold/craft-common-actions/.github/workflows/gate.yml@main
+    if: ${{ (github.event.action != 'labeled' || github.event.label.name == 'full-ci') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    uses: ./.github/workflows/self-hosted-gate.yml
     with:
       # egui/winit/rfd.
       packages: >-
@@ -173,10 +172,10 @@ jobs:
   # which needs its own action step.
   windows:
     needs: platforms
-    if: needs.platforms.outputs.windows == 'true'
+    if: ${{ (needs.platforms.outputs.windows == 'true') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
     timeout-minutes: 100
     name: test (windows-latest, ${{ matrix.part }})
-    runs-on: windows-latest
+    runs-on: ["self-hosted", "Windows", "X64", "asd-ci"]
     strategy:
       fail-fast: false
       matrix:
@@ -274,11 +273,11 @@ jobs:
   # cache without saving one: the dependencies are the same, and the 10 GB cache budget is tight
   # (#2688).
   test-without-heif:
-    if: github.event.action != 'labeled' || github.event.label.name == 'full-ci'
+    if: ${{ (github.event.action != 'labeled' || github.event.label.name == 'full-ci') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
     timeout-minutes: 60
     name: test (without heif)
     # The gate's runner: its cache entry is keyed on the OS.
-    runs-on: ubuntu-24.04
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     env:
       # The gate sets these; rust-cache hashes CARGO_* and RUST* variables into its key.
       CARGO_INCREMENTAL: 0
@@ -289,7 +288,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Linux build dependencies
-        uses: storytold/craft-common-actions/actions/install-apt-packages@main
+        uses: storytold/craft-common-actions/actions/install-apt-packages@fd14193f062cd71f9de9426bd450aa0adad670f0
         with:
           packages: >-
             libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
@@ -312,14 +311,14 @@ jobs:
         run: cargo nextest run -p photocraft-heif -p photocraft-codecs -p photocraft-io --locked --profile ci
 
   corpus:
-    if: github.event.action != 'labeled' || github.event.label.name == 'full-ci'
+    if: ${{ (github.event.action != 'labeled' || github.event.label.name == 'full-ci') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
     timeout-minutes: 30
     # Real-file corpus tests (cargo feature `corpus`), on every PR and on main. The corpora are
     # pinned in xtask/src/corpus_pins.rs and sha256-verified (xtask/*.sha256) after both a cache
     # restore and a download; a missing corpus fails the tests. The cache key changes only when a
     # pin or manifest does, so normally this restores in seconds (fork PRs read the base cache).
     name: corpus tests
-    runs-on: ubuntu-latest
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     env:
       # test-corpus builds with --release, but here without the release profile's thin LTO and
       # single codegen unit: they ran LTO over the dependency graph for each of the ~95 corpus test
@@ -352,8 +351,8 @@ jobs:
     name: web build and wasm size gate
     # PRs run it only when web-relevant files change (see `platforms`); main always does.
     needs: platforms
-    if: needs.platforms.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    if: ${{ (needs.platforms.outputs.web == 'true') && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     env:
       # Match release.yml so PR results reflect what would actually ship.
       TRUNK_VERSION: 0.21.14
@@ -401,8 +400,8 @@ jobs:
     timeout-minutes: 60
     name: fuzz (${{ matrix.target.crate }}/${{ matrix.target.name }})
     # Placeholder: manual trigger only until a nightly schedule is enabled.
-    if: github.event_name == 'workflow_dispatch' && inputs.fuzz
-    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.fuzz) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     strategy:
       fail-fast: false
       matrix:
@@ -451,8 +450,8 @@ jobs:
           path: crates/${{ matrix.target.crate }}/fuzz/artifacts
 
   color-range-performance:
-    if: inputs.color_range == true
-    runs-on: ubuntu-latest
+    if: ${{ (inputs.color_range == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     timeout-minutes: 45
     env:
       RAYON_NUM_THREADS: "4"
@@ -461,7 +460,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Linux build dependencies
-        uses: storytold/craft-common-actions/actions/install-apt-packages@main
+        uses: storytold/craft-common-actions/actions/install-apt-packages@fd14193f062cd71f9de9426bd450aa0adad670f0
         with:
           packages: >-
             libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
@@ -481,8 +480,8 @@ jobs:
           path: color-range-perf.txt
 
   selection-morphology:
-    if: inputs.selection_morphology == true
-    runs-on: ubuntu-latest
+    if: ${{ (inputs.selection_morphology == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     timeout-minutes: 45
     env:
       RAYON_NUM_THREADS: "4"
@@ -491,7 +490,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Linux build dependencies
-        uses: storytold/craft-common-actions/actions/install-apt-packages@main
+        uses: storytold/craft-common-actions/actions/install-apt-packages@fd14193f062cd71f9de9426bd450aa0adad670f0
         with:
           packages: >-
             libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
@@ -515,11 +514,11 @@ jobs:
           path: selection-morphology-perf.txt
 
   selection-morphology-quick-perf:
-    if: inputs.selection_morphology == true || inputs.color_range == true || inputs.selection_combining == true || inputs.brush_tip == true || inputs.dry_mixer == true
+    if: ${{ false && github.repository_owner == 'mamankub' }} # Owner paused non-Linux/Windows-x64 coverage (2026-11-10).
     name: quick performance suite
     # Match perf-nightly.yml: Linux llvmpipe lacks the float render targets needed by
     # bevel_bench, so its required GPU rows cannot be measured there.
-    runs-on: macos-15
+    runs-on: ["self-hosted", "macOS", "ARM64", "asd-ci"]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -540,8 +539,8 @@ jobs:
             target/perf/summary.md
 
   selection-combining:
-    if: inputs.selection_combining == true
-    runs-on: ubuntu-latest
+    if: ${{ (inputs.selection_combining == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     timeout-minutes: 30
     env:
       RAYON_NUM_THREADS: "4"
@@ -564,8 +563,8 @@ jobs:
           path: selection-combining-perf.txt
 
   brush-tip:
-    if: inputs.brush_tip == true
-    runs-on: ubuntu-24.04
+    if: ${{ (inputs.brush_tip == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     timeout-minutes: 30
     env:
       RAYON_NUM_THREADS: "4"
@@ -608,8 +607,8 @@ jobs:
           name: brush-tip-performance
           path: brush-tip.txt
   dry-mixer:
-    if: inputs.dry_mixer == true
-    runs-on: ubuntu-latest
+    if: ${{ (inputs.dry_mixer == true) && (github.repository_owner == 'mamankub' && github.actor == 'mamankub' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) }}
+    runs-on: ["self-hosted", "Linux", "X64", "asd-ci", "ubuntu-24.04"]
     timeout-minutes: 90
     env:
       RAYON_NUM_THREADS: "4"
@@ -632,7 +631,7 @@ jobs:
           cp crates/engine/examples/bench_dry_mixer.rs "$RUNNER_TEMP/photocraft-baseline/crates/engine/examples/bench_dry_mixer.rs"
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - name: Install Linux build dependencies
-        uses: storytold/craft-common-actions/actions/install-apt-packages@main
+        uses: storytold/craft-common-actions/actions/install-apt-packages@fd14193f062cd71f9de9426bd450aa0adad670f0
         with:
           packages: >-
             libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
